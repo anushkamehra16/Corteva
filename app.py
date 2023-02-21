@@ -9,9 +9,9 @@ app = Flask(__name__)
 # Configure MySQL connection
 db = mysql.connector.connect(
   host="localhost",
-  user="root",
-  password="ashes1122",
-  database="BayerCrop"
+  user="<username>",
+  password="<password>",
+  database="<database>"
 )
 
 # Define Swagger documentation parameters
