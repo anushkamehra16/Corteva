@@ -1,0 +1,103 @@
+Corteva Assessment
+
+
+1. Data Modelling:
+
+The data consists of 4 columns: 
+Date, max_temperature, min_temperature, precipitation. 
+
+There will be a central table  ‘Weather’ which will consist of the above columns. In addition to these columns, ‘Updated_at’ column is added to keep a track of updates in the table. Since, the table does not consist of a unique column, a composite key has been created. 
+The composite key is weathed_date, max_temp, min_temp, precipitation. 
+
+DDL: 
+// Creating Database:
+	Create database CortevaCrop;
+
+// Creating Weather table:
+	Create table if not exists weather (weather_date date , min_temp float default -9999, max_temp float default -9999, precipitation float default -9999, PRIMARY KEY(weather_date, min_temp, max_temp, 		precipitation));
+
+// Adding Updated_at column:
+	alter table weather add column updated_at timestamp;
+
+** The data does not contain specific weather station IDs/names. This is currently preventing in making a smarter composite key like weather_station_id + date (assumption here is that each weather station has only 1 record for a particular day). We can also define a hash key but that would in turn be problematic for many to many relationship. 
+
+** The data table can further be partition based on the region of the weather station. This will ensure that each region has its own partition and then can be referenced by a unique id given to each region. For instance: select * from weather where region_id = 1; This will retrieve only regionId = 1 records. 
+
+** To make the read efficient, we can also use a columnar database like AWS Redshift. Columnar database will help in more efficient query read/write latency. 
+
+
+
+
+2. Data Ingestion:
+
+To ingest data, code has been written using Python (file: Corteva.ipynb consists of the code)
+The steps followed to do an initial load:
+1. Read text files in the folder wx_data to a pandas dataframe
+2. Perform some transformations to reformat the date column, add value to updated_at column, make the temperature and precipitation column values in tenth of a decimal (i.e. dividing them by 10)
+3. Using SQL Alchemy, load the initial dataframe to 'weather' table. This uses .to_sql() pandas function. 
+
+## To insert new records without causing duplicates, MYSQL provides INSERT .... ON DUPLICATE KEY funtionality. It is similar to how MERGE query works. The steps below are to insert new records to a staging table and then to 'weather' table.
+
+4. Steps 1 and 3 are executed to get new records file in a pandas dataframe and then to staging table: 'stage_data'.
+5. The records are now available in 'stage_data'. An INSERT .... ON DUPLICATE KEY query is devised to write the data from 'stage_data' ----> 'weather'
+ON DUPLICATE KEY in the INSERT statement will insert new records or simply update the existing record with its new values. 
+
+** Another alternative is to run a MERGE query. If the table had a primary key to unique identify the rows, then a MERGE query is beneficial. In that query, 
+If data exists: 
+	update the values, update the updated_at with now()
+else:
+	insert the new record
+
+
+
+
+
+3. Data Analysis:
+
+Weather table consists of date, temperatures, precipitation. The data does not consist information about weather station. Therefore, the results have been computed based on the existing information. 
+
+In 'weather' table, column: 'weather_date' is further broken to create a new column: 'year'. 'Year' column will have many to one relationship with 'yearly_weather_stats' table. 
+
+yearly_weather_stats:
+	year (PK)
+	avg_max_temperature
+	avg_min_temperature
+	total_precipitation
+
+In 'weather' table: 
+// adding year column
+	alter table weather add column year int;
+
+// updating the values in year column
+	update weather
+		set year = YEAR(weather_date);
+
+The records are inserted into the new table by calculating the average and total of precipitation and grouping them on year. 
+
+
+
+4. RestAPI:
+
+Flask framework is used with mysql_connector to deploy an api which is used to get results from the two weather tables. /api/weather displays results based on filtering the date. /api/weather/stats displays the results based on the year requested by the user. 
+
+Swagger documentation includes the basic definitions of the various attributes that are present in the response of the APIs defined. 
+
+
+
+
+5. AWS approach to deploy the API:
+
+	a. To make the setup server less, AWS provides services like AWS Lambda. AWS Lambda is a server less tool that can run the code and also communicate to different services within AWS cloud like DynamoDB, Redshift, RDS, Glue. 
+	b. Use API Gateway to create, document the API. The requests from API gateway are routed to Lambda function. 
+	c. Lambda Function consists of the code which connects to the database. Assumption: The database used is Redshift. Redshift is an efficient database which can offer better query performance. Once, the API is 	routed to Lambda, the function connects to the database, extracts the desired results and then route the output to API gateway to provide the results to the user. 
+	d. Cloud watch can be used to monitor the performance of the API. 
+
+		Approach to update the data in database automatically:
+			a. Using S3 as the data lake where new incoming files are uploaded. 
+			b. When a new file lands in S3, event notification is enabled which will route the notification to SQS queue. 
+			c. Once, the SQS queue receives a notification, a lambda will be run to read the SQS message, extract the new file details like the file name, type, date added, size, file location. 
+			d. Lambda reads the file from the location, runs the python code that will connect to database (Redshift) and then inserts the records based on the Primary key. 
+			e. Optional: Once, the records are inserted, Lambda will update a log keeping table in DynamoDB which will consist of the file name, date run, last run status, last run error, last successful run. This will help with error resolution to identify the file which is in error. 
+			f. Cloud Watch is used to monitor the performance of the Lambda, Redshift database. 
+
+
