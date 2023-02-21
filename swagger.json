@@ -1,0 +1,115 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Weather Data API",
+    "version": "1.0.0",
+    "title": "Weather Data API"
+  },
+  "components": {
+    "schemas": {
+      "weather": {
+        "properties": {
+          "weather_date": {
+            "type": "date",
+            "format": "date"
+          },
+          "max_temp": {
+            "type": "float",
+            "format": "float"
+          },
+          "min_temp": {
+            "type": "float",
+            "format": "float"
+          },
+          "precipitation": {
+            "type": "float",
+            "format": "float"
+          }
+        }
+      },
+      "weather_stats": {
+        "properties": {
+          "year": {
+            "type": "date"
+          },
+          "avg_max_temperature": {
+            "type": "float",
+            "format": "float"
+          },
+          "avg_min_temperature": {
+            "type": "float",
+            "format": "float"
+          },
+          "total_precipitation": {
+            "type": "float",
+            "format": "float"
+          }
+        }
+      },
+      "weatherdataresponse": {
+        "type": "object",
+        "properties": {
+          "weather_date": {
+            "type": "date",
+            "format": "date"
+          },
+          "max_temp": {
+            "type": "float",
+            "format": "float"
+          },
+          "min_temp": {
+            "type": "float",
+            "format": "float"
+          },
+          "precipitation": {
+            "type": "float",
+            "format": "float"
+          }
+        }
+      },
+      "weatherdata": {
+        "type": "object",
+        "properties": {
+          "weather_date": {
+            "type": "date",
+            "format": "date"
+          },
+          "max_temp": {
+            "type": "float",
+            "format": "float"
+          },
+          "min_temp": {
+            "type": "float",
+            "format": "float"
+          },
+          "precipitation": {
+            "type": "float",
+            "format": "float"
+          }
+        }
+      },
+      "weatherdata1": {
+        "type": "object",
+        "properties": {
+          "weatherdatainfo": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/weather"
+            }
+          }
+        }
+      },
+      "weatherdata2": {
+        "type": "object",
+        "properties": {
+          "weatherdatainfo2": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/weather_stats"
+            }
+          }
+        }
+      }
+    }
+  }
+}
