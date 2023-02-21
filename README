@@ -5,3 +5,4 @@ CortevaModel: Image defining the data model.
 app.py: File containing code for Weather data API which allows filtering based on date.
 stats.py: File containing code for Weather Stats API which allows filtering on year.
 Corteva.txt: Contains the answers, approaches, explanations and deployment approach to Cloud.
+swagger.json: Consists of the Swagger documentation content.
